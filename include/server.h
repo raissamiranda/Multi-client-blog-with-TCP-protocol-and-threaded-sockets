@@ -1,6 +1,5 @@
 #include "common.h"
 
-sem_t semaphore;
 struct Blog blog;
 
 struct Client {
@@ -16,6 +15,7 @@ struct Topic {
     int postAuthorsID[100];
     int postCount;
     struct Client subscribers[100];
+    int subscribersCount;
 };
 
 // It's a newly created blog with no topics and no clients
