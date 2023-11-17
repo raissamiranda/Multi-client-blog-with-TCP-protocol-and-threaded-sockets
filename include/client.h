@@ -3,6 +3,7 @@
 pthread_t clientThread;
 char command[2048];
 char *topic = " ";
+char *content = " ";
 
 struct Command {
     const char *name;

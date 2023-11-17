@@ -41,28 +41,53 @@ int main(int argc, char **argv)
     while (1)
     {
 
+        struct BlogOperation operationToSend;
         fgets(command, sizeof(command), stdin);
         int commandType = handleCommand(command);
 
-        if (commandType == INVALID)
+        switch (commandType)
         {
+        case INVALID:
             printf("Invalid command\n");
-            continue;
+            break;
+
+        case NEW_POST_IN_TOPIC:
+            topic = getTopic(commandType, command);
+            fgets(content, 2048, stdin);
+            operationToSend = createOperation(operationReceivedByServer.client_id, NEW_POST_IN_TOPIC, 0, topic, content);
+            break;
+
+        case LIST_TOPICS:
+            operationToSend = createOperation(operationReceivedByServer.client_id, LIST_TOPICS, 0, "", "");
+            break;
+
+        case SUBSCRIBE_IN_TOPIC:
+            topic = getTopic(commandType, command);
+            operationToSend = createOperation(operationReceivedByServer.client_id, SUBSCRIBE_IN_TOPIC, 0, topic, "");
+            break;
+
+        case UNSUBSCRIBE_IN_TOPIC:
+            topic = getTopic(commandType, command);
+            operationToSend = createOperation(operationReceivedByServer.client_id, UNSUBSCRIBE_IN_TOPIC, 0, topic, "");
+            break;
+
+        case DISCONNECT:
+            messageDisconnect();
+            operationToSend = createOperation(operationReceivedByServer.client_id, DISCONNECT, 0, "", "");
+            break;
+
+        default:
+            break;
         }
 
-        switch(commandType) {
-            case NEW_POST_IN_TOPIC:
-                break;
-            case LIST_TOPICS:
-                break;
-            case SUBSCRIBE_IN_TOPIC:
-                break;
-            case UNSUBSCRIBE_IN_TOPIC:
-                break;
-            case DISCONNECT:
-                break;
-            default:
-                break;
+        // Send request to server
+        if (commandType != INVALID)
+        {
+            size = send(sockfd, &operationToSend, sizeof(operationToSend), 0);
+            if (size != sizeof(operationToSend))
+            {
+                logexit("send");
+            }
         }
     }
 
@@ -93,8 +118,8 @@ int handleCommand(char *input)
             }
             if (strcmp(command, "subscribe") == 0 || strcmp(command, "unsubscribe") == 0)
             {
-                char *inKeyword = strtok(NULL, " ");
-                if (inKeyword == NULL || !(strcmp(inKeyword, "in") == 0 || strcmp(inKeyword, "to") == 0))
+                char *keyword = strtok(NULL, " "); // Get the topic
+                if (keyword == NULL)
                 {
                     return INVALID;
                 }
@@ -102,8 +127,8 @@ int handleCommand(char *input)
             }
             if (strcmp(command, "publish") == 0)
             {
-                char *inKeyword = strtok(NULL, " ");
-                if (inKeyword == NULL || strcmp(inKeyword, "in") != 0)
+                char *keyword = strtok(NULL, " ");
+                if (keyword == NULL)
                 {
                     return INVALID;
                 }
@@ -113,5 +138,74 @@ int handleCommand(char *input)
         }
 
         return INVALID;
+    }
+}
+
+// Get the content of the command
+char *getTopic(int cmd, char *cmdLine)
+{
+    char *theTopic = malloc(sizeof(char) * 2048);
+    for (int i = 0; i < sizeof(commands) / sizeof(struct Command); i++)
+    {
+        if (cmd == commands[i].name)
+        {
+            switch (cmd)
+            {
+            case NEW_POST_IN_TOPIC:
+                strcpy(theTopic, cmdLine + strlen(commands[i].name) + 1);
+                return theTopic;
+
+            case SUBSCRIBE_IN_TOPIC:
+                strcpy(theTopic, cmdLine + strlen(commands[i].name) + 1);
+                return theTopic;
+
+            case UNSUBSCRIBE_IN_TOPIC:
+                strcpy(theTopic, cmdLine + strlen(commands[i].name) + 1);
+                return theTopic;
+
+            default:
+                return NULL;
+            }
+            return NULL;
+        }
+    }
+}
+
+void messageDisconnect()
+{
+    printf("exit\n");
+}
+
+void* waitingFunction(void* sock) {
+    int* sockfd = (int*)sock;
+    struct BlogOperation operationReceivedByServer;
+    while (1)
+    {
+        // Receive response from server
+        size_t size = receive_all(sockfd, &operationReceivedByServer, sizeof(operationReceivedByServer));
+        if (size != sizeof(operationReceivedByServer))
+        {
+            logexit("receive");
+        }
+
+        switch (operationReceivedByServer.operation_type)
+        {
+        case NEW_POST_IN_TOPIC:
+            printf("new post added in %s by 0%d\n%s", operationReceivedByServer.topic, operationReceivedByServer.client_id, operationReceivedByServer.content);
+            break;
+
+        case LIST_TOPICS:
+            printf("%s\n", operationReceivedByServer.content);
+            break;
+
+        case DISCONNECT:
+            printf("%s\n", operationReceivedByServer.content);
+            close(*sockfd);
+            break;
+
+        default:
+            break;
+        }
+
     }
 }

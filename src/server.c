@@ -41,9 +41,6 @@ int main(int argc, char *argv[])
         addUserToBlog(newClient);
         messageClientConnected(newClient);
 
-        // Create a thread to handle the client
-        pthread_create(&(blog.clients[newClient.id].thread), NULL, function, (void *)&newClient);
-
         // Send response to client
         struct BlogOperation serverResponse = createOperation(newClient.id, NEW_CONNECTION, 1, "", "");
         size_t size = send(csock, &serverResponse, sizeof(serverResponse), 0);
@@ -51,6 +48,10 @@ int main(int argc, char *argv[])
         {
             logexit("send");
         }
+
+        // Create a thread to handle the client
+        pthread_create(&(blog.clients[newClient.id].thread), NULL, function, (void *)&newClient);
+
     }
 
     // Wait for all threads to finish
