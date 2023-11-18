@@ -100,6 +100,7 @@ int main(int argc, char **argv)
         // Send request to server
         if (commandType != INVALID)
         {
+            printBlogOperation(operationToSend);
             size = send(sockfd, &operationToSend, sizeof(operationToSend), 0);
             if (size != sizeof(operationToSend))
             {

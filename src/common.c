@@ -113,3 +113,12 @@ size_t receive_all(int socket, void *buffer, size_t size)
     }
     return total_received;
 }
+
+void printBlogOperation(struct BlogOperation operation)
+{
+    printf("Client ID: %d\n", operation.client_id);
+    printf("Operation Type: %d\n", operation.operation_type);
+    printf("Server Response: %d\n", operation.server_response);
+    printf("Topic: %s\n", operation.topic);
+    printf("Content: %s\n", operation.content);
+}
