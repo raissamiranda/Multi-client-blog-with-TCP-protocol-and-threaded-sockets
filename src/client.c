@@ -15,7 +15,8 @@ int main(int argc, char **argv)
     serverAdress.port = argv[2];
 
     // Initialize socket
-    int sockfd = createSocket();
+    int sockfd;
+    sockfd = createSocket();
 
     // Create client request
     struct BlogOperation operationToSendByClient = createOperation(0, NEW_CONNECTION, 0, "", "");
@@ -94,10 +95,6 @@ int main(int argc, char **argv)
     return 0;
 }
 
-void waitingFunction()
-{
-}
-
 int handleCommand(char *input)
 {
     input[strlen(input) - 1] = '\0';    // Remove \n from input
@@ -147,7 +144,7 @@ char *getTopic(int cmd, char *cmdLine)
     char *theTopic = malloc(sizeof(char) * 2048);
     for (int i = 0; i < sizeof(commands) / sizeof(struct Command); i++)
     {
-        if (cmd == commands[i].name)
+        if (cmdLine == commands[i].name)
         {
             switch (cmd)
             {
@@ -182,7 +179,7 @@ void* waitingFunction(void* sock) {
     while (1)
     {
         // Receive response from server
-        size_t size = receive_all(sockfd, &operationReceivedByServer, sizeof(operationReceivedByServer));
+        size_t size = receive_all(*sockfd, &operationReceivedByServer, sizeof(operationReceivedByServer));
         if (size != sizeof(operationReceivedByServer))
         {
             logexit("receive");

@@ -14,7 +14,8 @@ int main(int argc, char *argv[])
     serverAdress.port = argv[2];
 
     // Initialize socket
-    int sockfd = createSocket();
+    int sockfd;
+    sockfd = createSocket();
 
     // Initializes blog
     blog.clientsCount = 0;
@@ -65,7 +66,7 @@ int createSocket()
 
     // initialize adress storage struct (IPv4 or IPv6)
     struct sockaddr_storage storage;
-    if (initServerSockaddr(serverAdress.ip, serverAdress.port, &storage))
+    if (server_sockaddr_init(serverAdress.ip, serverAdress.port, &storage))
     {
         logexit("serverSockaddrInit");
     }
@@ -130,7 +131,7 @@ void *function(void *thread)
     struct Client *client = (struct Client *)thread;
     int socket = client->socket;
 
-    while (1)
+    while (RECEIVING_DATA)
     {
         // Receive data from client
         struct BlogOperation operationRequestedByClient;
@@ -157,27 +158,30 @@ struct BlogOperation createOperationToSend(struct BlogOperation operationRequest
     operationRequestedByClient.operation_type = 0;
     operationRequestedByClient.server_response = 0;
 
-    switch (operationRequestedByClient.operation_type == NEW_POST_IN_TOPIC)
+    switch (operationRequestedByClient.operation_type)
     {
+    int topicIndex, hasTopic;
     case NEW_POST_IN_TOPIC:
         // Create a new post in a topic if it exists, if not, create a new topic and add the post in it
         // It's the index in the blog.topics array
-        int topicIndex = findTopic(operationRequestedByClient.topic);
+
+        topicIndex = findTopic(operationRequestedByClient.topic);
         if (topicIndex == NOT_FOUND)
         {
             createTopic(operationRequestedByClient.topic);
-            addNewPostInTopic(operationRequestedByClient, topicIndex);
+            topicIndex = findTopic(operationRequestedByClient.topic);
+            addPostInTopic(operationRequestedByClient, topicIndex);
         }
         else
         {
-            addNewPostInTopic(operationRequestedByClient, topicIndex);
+            addPostInTopic(operationRequestedByClient, topicIndex);
             messageNewPostInTopic(topicIndex);
         }
         break;
 
     case LIST_TOPICS:
         // Check if there are topics in the blog and send them to the client
-        if (hasTopics)
+        if (hasTopics())
         {
             listTopics();
             operationToSend = createOperation(operationRequestedByClient.client_id, LIST_TOPICS, 1, "", "");
@@ -190,10 +194,10 @@ struct BlogOperation createOperationToSend(struct BlogOperation operationRequest
 
     case SUBSCRIBE_IN_TOPIC:
         // Subscribe a client in a topic if it exists
-        int hasTopic = findTopic(operationRequestedByClient.topic);
-        if (hasTopic != NOT_FOUND && !isSubscribed(client, topicIndex))
+        topicIndex = findTopic(operationRequestedByClient.topic);
+        if (topicIndex != NOT_FOUND && !isSubscribed(client, topicIndex))
         {
-            subscribeClientinTopic(client, topicIndex);
+            subscribeClientInTopic(client, topicIndex);
         }
         else
         {
@@ -209,8 +213,8 @@ struct BlogOperation createOperationToSend(struct BlogOperation operationRequest
 
     case UNSUBSCRIBE_IN_TOPIC:
         // Unsuscribe a client in a topic if it exists
-        int hasTopic = findTopic(operationRequestedByClient.topic);
-        if (hasTopic != NOT_FOUND && isSubscribed(client, topicIndex))
+        topicIndex = findTopic(operationRequestedByClient.topic);
+        if (topicIndex != NOT_FOUND && isSubscribed(client, topicIndex))
         {
             unsubscribeClientInTopic(client, topicIndex);
         }
@@ -278,7 +282,7 @@ void createTopic(char topic[50])
 // Add a new post in a topic
 void addPostInTopic(struct BlogOperation operationRequestedByClient, int topicIndex)
 {
-    struct Topic topic = blog.topics[topicIndex];
+    struct Topic topic = blog.topics[blog.topicsCount - 1];
     topic.posts[topic.postCount] = operationRequestedByClient.content;
     topic.postAuthorsID[topic.postCount] = operationRequestedByClient.client_id;
     topic.postCount++;

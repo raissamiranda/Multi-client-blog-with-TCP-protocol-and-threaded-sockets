@@ -42,7 +42,8 @@ size_t receive_all(int socket, void * buffer, size_t length);
 
 #define EXIT_FAILURE 1
 #define RECEIVING_CONNECTIONS 1
-#define NOT_FOUND -1
+#define RECEIVING_DATA 1
+#define NOT_FOUND 0
 
 
 #define NEW_CONNECTION 1

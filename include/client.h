@@ -18,3 +18,8 @@ struct Command commands[] = {
     {"unsubscribe", UNSUBSCRIBE_IN_TOPIC},
     {"publish", NEW_POST_IN_TOPIC}
 };
+
+int handleCommand(char *input);
+char *getTopic(int cmd, char *cmdLine);
+void messageDisconnect();
+void* waitingFunction(void* sock);
