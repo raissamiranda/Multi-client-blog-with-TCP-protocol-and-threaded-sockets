@@ -16,7 +16,23 @@ int main(int argc, char **argv)
 
     // Initialize socket
     int sockfd;
-    sockfd = createSocket();
+    // Stores information about the IP version and port
+    struct sockaddr_storage storage;
+    if(addrparse(serverAdress.ip, serverAdress.port, &storage) != 0){
+        logexit("addrparse");
+    }
+
+    // Creates socket for TCP communication
+    sockfd = socket(storage.ss_family, SOCK_STREAM, 0);
+    if(sockfd == -1){
+        logexit("socket");
+    }
+
+    // Creates connection
+    struct sockaddr *addr = (struct sockaddr *)(&storage);
+    if(connect(sockfd, addr, sizeof(storage)) != 0){
+        logexit("connect");
+    }
 
     // Create client request
     struct BlogOperation operationToSendByClient = createOperation(0, NEW_CONNECTION, 0, "", "");
@@ -41,7 +57,6 @@ int main(int argc, char **argv)
 
     while (1)
     {
-
         struct BlogOperation operationToSend;
         fgets(command, sizeof(command), stdin);
         int commandType = handleCommand(command);
@@ -54,6 +69,7 @@ int main(int argc, char **argv)
 
         case NEW_POST_IN_TOPIC:
             topic = getTopic(commandType, command);
+            char *content = malloc(sizeof(char) * 2048);
             fgets(content, 2048, stdin);
             operationToSend = createOperation(operationReceivedByServer.client_id, NEW_POST_IN_TOPIC, 0, topic, content);
             break;
@@ -109,17 +125,17 @@ int handleCommand(char *input)
             {
                 return DISCONNECT;
             }
-            if (strcmp(command, "list topics") == 0)
+            if (strcmp(command, "list") == 0)
             {
-                return LIST_TOPICS;
+                char *keyword = strtok(NULL, " ");
+                if (strcmp(keyword, "topics") == 0)
+                {
+                    return LIST_TOPICS;
+                }
+                return INVALID;
             }
             if (strcmp(command, "subscribe") == 0 || strcmp(command, "unsubscribe") == 0)
-            {
-                char *keyword = strtok(NULL, " "); // Get the topic
-                if (keyword == NULL)
-                {
-                    return INVALID;
-                }
+            {   
                 return (strcmp(command, "subscribe") == 0) ? SUBSCRIBE_IN_TOPIC : UNSUBSCRIBE_IN_TOPIC;
             }
             if (strcmp(command, "publish") == 0)
@@ -129,43 +145,35 @@ int handleCommand(char *input)
                 {
                     return INVALID;
                 }
-                return NEW_POST_IN_TOPIC;
+                if (strcmp(keyword, "in") == 0) return NEW_POST_IN_TOPIC;
             }
-            return INVALID;
         }
-
-        return INVALID;
     }
+    return INVALID;
 }
 
 // Get the content of the command
 char *getTopic(int cmd, char *cmdLine)
 {
     char *theTopic = malloc(sizeof(char) * 2048);
-    for (int i = 0; i < sizeof(commands) / sizeof(struct Command); i++)
-    {
-        if (cmdLine == commands[i].name)
-        {
             switch (cmd)
             {
             case NEW_POST_IN_TOPIC:
-                strcpy(theTopic, cmdLine + strlen(commands[i].name) + 1);
+                strcpy(theTopic, cmdLine + 11);
                 return theTopic;
 
             case SUBSCRIBE_IN_TOPIC:
-                strcpy(theTopic, cmdLine + strlen(commands[i].name) + 1);
+                strcpy(theTopic, cmdLine + 10);
                 return theTopic;
 
             case UNSUBSCRIBE_IN_TOPIC:
-                strcpy(theTopic, cmdLine + strlen(commands[i].name) + 1);
+                strcpy(theTopic, cmdLine + 12);
                 return theTopic;
 
             default:
                 return NULL;
             }
             return NULL;
-        }
-    }
 }
 
 void messageDisconnect()

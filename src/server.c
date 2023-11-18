@@ -142,8 +142,7 @@ void *function(void *thread)
         }
 
         // Create server response to client
-        struct BlogOperation operationSendByServer;
-        createOperationToSend(operationRequestedByClient, &operationSendByServer, *client);
+        struct BlogOperation operationSendByServer = createOperationToSend(operationRequestedByClient, &operationSendByServer, *client);
 
         // Send response to client
         size = send(socket, &operationSendByServer, sizeof(operationSendByServer), 0);
@@ -155,12 +154,12 @@ struct BlogOperation createOperationToSend(struct BlogOperation operationRequest
 {
     struct BlogOperation operationToSend;
     operationToSend.client_id = operationRequestedByClient.client_id;
-    operationRequestedByClient.operation_type = 0;
-    operationRequestedByClient.server_response = 0;
-
+    operationToSend.operation_type = 0;
+    operationToSend.server_response = 1;
+    int topicIndex, hasTopic;
     switch (operationRequestedByClient.operation_type)
     {
-    int topicIndex, hasTopic;
+    
     case NEW_POST_IN_TOPIC:
         // Create a new post in a topic if it exists, if not, create a new topic and add the post in it
         // It's the index in the blog.topics array
@@ -175,20 +174,34 @@ struct BlogOperation createOperationToSend(struct BlogOperation operationRequest
         else
         {
             addPostInTopic(operationRequestedByClient, topicIndex);
-            messageNewPostInTopic(topicIndex);
+            for (int i = 0; i < blog.topics[topicIndex].subscribersCount; i++)
+            {
+                operationSendByServer->client_id = operationRequestedByClient.client_id;
+                operationSendByServer->operation_type = NEW_POST_IN_TOPIC;
+                operationSendByServer->server_response = 1;
+                strcpy(operationSendByServer->topic, operationRequestedByClient.topic);
+                strcpy(operationSendByServer->content, operationRequestedByClient.content);
+                size_t size = send(blog.topics[topicIndex].subscribers[i].socket, operationSendByServer, sizeof(*operationSendByServer), 0);
+                if (size != sizeof(*operationSendByServer))
+                {
+                    logexit("send");
+                }
+            }
         }
+        messageNewPostInTopic(topicIndex);
         break;
 
     case LIST_TOPICS:
         // Check if there are topics in the blog and send them to the client
         if (hasTopics())
         {
-            listTopics();
-            operationToSend = createOperation(operationRequestedByClient.client_id, LIST_TOPICS, 1, "", "");
+            char* allTopics = malloc(sizeof(char) * 2048);
+            listTopics(allTopics);
+            operationToSend = createOperation(operationRequestedByClient.client_id, LIST_TOPICS, 1, "", allTopics);
         }
         else
         {
-            printf("There are no topics in the blog\n");
+            operationToSend = createOperation(operationRequestedByClient.client_id, LIST_TOPICS, 1, "", "no topics available");
         }
         break;
 
@@ -214,6 +227,9 @@ struct BlogOperation createOperationToSend(struct BlogOperation operationRequest
     case UNSUBSCRIBE_IN_TOPIC:
         // Unsuscribe a client in a topic if it exists
         topicIndex = findTopic(operationRequestedByClient.topic);
+        printf("topicIndex: %d\n", topicIndex);
+        printf("topic: %s\n", operationRequestedByClient.topic);
+        printf("isSubscribed: %d\n", isSubscribed(client, topicIndex));
         if (topicIndex != NOT_FOUND && isSubscribed(client, topicIndex))
         {
             unsubscribeClientInTopic(client, topicIndex);
@@ -238,20 +254,18 @@ bool hasTopics()
 }
 
 // Print all topics in the blog separated by ;
-void listTopics()
+void listTopics(char* topics)
 {
-    char allTopics[2048] = ""; // Assuming 2048 is enough to hold all topics
 
     for (int i = 0; i < blog.topicsCount; i++)
     {
-        strcat(allTopics, blog.topics[i].title);
+        strcat(topics, blog.topics[i].title);
         if (i < blog.topicsCount - 1)
         {
-            strcat(allTopics, ";");
+            strcat(topics, ";");
         }
     }
 
-    printf("%s\n", allTopics);
 }
 
 // Find an existing topic in the blog
@@ -277,6 +291,10 @@ void createTopic(char topic[50])
     newTopic.subscribersCount = 0;
     blog.topics[blog.topicsCount] = newTopic;
     blog.topicsCount++;
+    for (int i = 0; i < 10; i++)
+    {
+        blog.topics[blog.topicsCount - 1].subscribers[i].id = -1;
+    }
 }
 
 // Add a new post in a topic
@@ -313,9 +331,8 @@ bool isSubscribed(struct Client client, int topicIndex)
 // Subscribe a client in a topic
 void subscribeClientInTopic(struct Client client, int topicIndex)
 {
-    struct Topic topic = blog.topics[topicIndex];
-    topic.subscribers[topic.subscribersCount] = client;
-    topic.subscribersCount++;
+    blog.topics[topicIndex].subscribers[blog.topics[topicIndex].subscribersCount] = client;
+    blog.topics[topicIndex].subscribersCount++;
 }
 
 // Unsubscribe a client in a topic

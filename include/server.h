@@ -14,7 +14,7 @@ struct Topic {
     char posts[100];
     int postAuthorsID[100];
     int postCount;
-    struct Client subscribers[100];
+    struct Client subscribers[10];
     int subscribersCount;
 };
 
@@ -33,7 +33,7 @@ void waitForThreads(struct Blog blog);
 void *function(void *thread);
 struct BlogOperation createOperationToSend(struct BlogOperation operationRequestedByClient, struct BlogOperation *operationSendByServer, struct Client client);
 bool hasTopics();
-void listTopics();
+void listTopics(char* topics);
 int findTopic(char topic[50]);
 void createTopic(char topic[50]);
 void addPostInTopic(struct BlogOperation operationRequestedByClient, int topicIndex);
