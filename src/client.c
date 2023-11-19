@@ -18,27 +18,32 @@ int main(int argc, char **argv)
     int sockfd;
     // Stores information about the IP version and port
     struct sockaddr_storage storage;
-    if(addrparse(serverAdress.ip, serverAdress.port, &storage) != 0){
+    if (addrparse(serverAdress.ip, serverAdress.port, &storage) != 0)
+    {
         logexit("addrparse");
     }
 
     // Creates socket for TCP communication
     sockfd = socket(storage.ss_family, SOCK_STREAM, 0);
-    if(sockfd == -1){
+    if (sockfd == -1)
+    {
         logexit("socket");
     }
 
     // Creates connection
     struct sockaddr *addr = (struct sockaddr *)(&storage);
-    if(connect(sockfd, addr, sizeof(storage)) != 0){
+    if (connect(sockfd, addr, sizeof(storage)) != 0)
+    {
         logexit("connect");
     }
-
     // Create client request
     struct BlogOperation operationToSendByClient = createOperation(0, NEW_CONNECTION, 0, "", "");
 
     // Send connection request to server
     size_t size = send(sockfd, &operationToSendByClient, sizeof(operationToSendByClient), 0);
+    printf("Sending...\n");
+    printBlogOperation(operationToSendByClient);
+    printf("\n");
     if (size != sizeof(operationToSendByClient))
     {
         logexit("send");
@@ -51,6 +56,9 @@ int main(int argc, char **argv)
     {
         logexit("receive");
     }
+    printf("Received...\n");
+    printBlogOperation(operationReceivedByServer);
+    printf("\n");
 
     // Create thread to handle the client
     pthread_create(&clientThread, NULL, waitingFunction, (void *)&sockfd);
@@ -100,6 +108,7 @@ int main(int argc, char **argv)
         // Send request to server
         if (commandType != INVALID)
         {
+            printf("\nENVIADO PELO CLIENTE:\n");
             printBlogOperation(operationToSend);
             size = send(sockfd, &operationToSend, sizeof(operationToSend), 0);
             if (size != sizeof(operationToSend))
@@ -136,7 +145,7 @@ int handleCommand(char *input)
                 return INVALID;
             }
             if (strcmp(command, "subscribe") == 0 || strcmp(command, "unsubscribe") == 0)
-            {   
+            {
                 return (strcmp(command, "subscribe") == 0) ? SUBSCRIBE_IN_TOPIC : UNSUBSCRIBE_IN_TOPIC;
             }
             if (strcmp(command, "publish") == 0)
@@ -146,7 +155,8 @@ int handleCommand(char *input)
                 {
                     return INVALID;
                 }
-                if (strcmp(keyword, "in") == 0) return NEW_POST_IN_TOPIC;
+                if (strcmp(keyword, "in") == 0)
+                    return NEW_POST_IN_TOPIC;
             }
         }
     }
@@ -157,24 +167,24 @@ int handleCommand(char *input)
 char *getTopic(int cmd, char *cmdLine)
 {
     char *theTopic = malloc(sizeof(char) * 2048);
-            switch (cmd)
-            {
-            case NEW_POST_IN_TOPIC:
-                strcpy(theTopic, cmdLine + 11);
-                return theTopic;
+    switch (cmd)
+    {
+    case NEW_POST_IN_TOPIC:
+        strcpy(theTopic, cmdLine + 11);
+        return theTopic;
 
-            case SUBSCRIBE_IN_TOPIC:
-                strcpy(theTopic, cmdLine + 10);
-                return theTopic;
+    case SUBSCRIBE_IN_TOPIC:
+        strcpy(theTopic, cmdLine + 10);
+        return theTopic;
 
-            case UNSUBSCRIBE_IN_TOPIC:
-                strcpy(theTopic, cmdLine + 12);
-                return theTopic;
+    case UNSUBSCRIBE_IN_TOPIC:
+        strcpy(theTopic, cmdLine + 12);
+        return theTopic;
 
-            default:
-                return NULL;
-            }
-            return NULL;
+    default:
+        return NULL;
+    }
+    return NULL;
 }
 
 void messageDisconnect()
@@ -182,13 +192,17 @@ void messageDisconnect()
     printf("exit\n");
 }
 
-void* waitingFunction(void* sock) {
-    int* sockfd = (int*)sock;
-    struct BlogOperation operationReceivedByServer;
+void *waitingFunction(void *sock)
+{ // socket do cliente
+    int *sockfd = (int *)sock;
     while (1)
     {
+        struct BlogOperation operationReceivedByServer;
         // Receive response from server
         size_t size = receive_all(*sockfd, &operationReceivedByServer, sizeof(operationReceivedByServer));
+        printf("Receiving...\n");
+        printBlogOperation(operationReceivedByServer);
+        printf("\n");
         if (size != sizeof(operationReceivedByServer))
         {
             logexit("receive");
@@ -212,6 +226,5 @@ void* waitingFunction(void* sock) {
         default:
             break;
         }
-
     }
 }
