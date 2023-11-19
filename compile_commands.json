@@ -1,0 +1,17 @@
+[
+    {
+        "arguments": [
+            "gcc",
+            "-c",
+            "-Wall",
+            "-g",
+            "-pthread",
+            "-Iinclude",
+            "-o",
+            "obj/server.o",
+            "src/server.c"
+        ],
+        "directory": "/home/raissamiranda/UFMG/redes/blog",
+        "file": "src/server.c"
+    }
+]

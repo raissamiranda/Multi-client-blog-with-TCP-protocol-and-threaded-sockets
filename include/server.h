@@ -11,7 +11,7 @@ struct Client {
 struct Topic {
     int id;
     char title[50];
-    char posts[100];
+    char posts[10][2048];
     int postAuthorsID[100];
     int postCount;
     struct Client subscribers[10];
@@ -31,7 +31,7 @@ void addUserToBlog(struct Client client);
 void messageClientConnected(struct Client client);
 void waitForThreads(struct Blog blog);
 void *function(void *thread);
-struct BlogOperation createOperationToSend(struct BlogOperation operationRequestedByClient, struct BlogOperation *operationSendByServer, struct Client client);
+struct BlogOperation createOperationToSend(struct BlogOperation operationRequestedByClient, struct Client client);
 bool hasTopics();
 void listTopics(char* topics);
 int findTopic(char topic[50]);
@@ -43,3 +43,4 @@ void subscribeClientInTopic(struct Client client, int topicIndex);
 void unsubscribeClientInTopic(struct Client client, int topicIndex);
 void disconnectClient(int clientID);
 void messageClientDisconnected(struct Client client);
+void printCurrentBlog();
