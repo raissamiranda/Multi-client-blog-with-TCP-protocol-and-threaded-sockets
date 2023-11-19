@@ -125,7 +125,7 @@ void addUserToBlog(struct Client client)
 // Print a message when a client connects
 void messageClientConnected(struct Client client)
 {
-    printf("Client 0%d connected\n", client.id + 1);
+    printf("Client 0%d connected", client.id + 1);
 }
 
 // Wait for all threads to finish
@@ -242,6 +242,7 @@ struct BlogOperation createOperationToSend(struct BlogOperation operationRequest
             createTopic(operationRequestedByClient.topic);
             topicIndex = findTopic(operationRequestedByClient.topic);
             subscribeClientInTopic(*client, topicIndex);
+            printf("client 0%d subscribed to %s\n", client->id + 1, operationRequestedByClient.topic);
         }
         else if (!isSubscribed(client->id, topicIndex))
         {
@@ -395,7 +396,7 @@ void disconnectClient(int clientID)
 // Print a message when a client disconnects
 void messageClientDisconnected(struct Client client)
 {
-    printf("client 0%d was disconnected\n", client.id + 1);
+    printf("client 0%d disconnected\n", client.id + 1);
 }
 
 // Find a client in the blog by its ID
