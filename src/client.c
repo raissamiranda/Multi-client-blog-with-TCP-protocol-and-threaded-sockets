@@ -1,4 +1,5 @@
 #include "client.h"
+#include "common.h"
 
 struct Address serverAdress;
 
@@ -219,6 +220,10 @@ void *waitingFunction(void *sock)
 
         case LIST_TOPICS:
             printf("%s\n", operationReceivedByServer.content);
+            break;
+
+        case SUBSCRIBE_IN_TOPIC:
+            printf("%s", operationReceivedByServer.content);
             break;
 
         case DISCONNECT:

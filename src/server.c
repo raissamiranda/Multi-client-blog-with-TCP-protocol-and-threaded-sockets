@@ -52,8 +52,11 @@ int main(int argc, char *argv[])
                 break;
             }
         }
-        //newClient.id = blog.clientsCount;
+        printf("ANTES\n");
+        printCurrentBlog();
         addUserToBlog(newClient);
+        printf("DEPOIS\n");
+        printCurrentBlog();
         messageClientConnected(newClient);
 
         // Send response to client
@@ -121,7 +124,7 @@ int createSocket()
 // Add a new client to the blog
 void addUserToBlog(struct Client client)
 {
-    blog.clients[blog.clientsCount] = client;
+    blog.clients[client.id] = client;
     blog.clientsCount++;
 }
 
@@ -134,9 +137,11 @@ void messageClientConnected(struct Client client)
 // Wait for all threads to finish
 void waitForThreads(struct Blog blog)
 {
-    for (int i = 0; i < blog.clientsCount; i++)
+    for (int i = 0; i < 10; i++)
     {
-        pthread_join(blog.clients[i].thread, NULL);
+        if (blog.clients[i].id != -1) {
+            pthread_join(blog.clients[i].thread, NULL);
+        }
     }
 }
 
@@ -171,12 +176,12 @@ void *function(void *thread)
         printBlogOperation(operationSendByServer);
         // Send response to client
         size = send(socket, &operationSendByServer, sizeof(operationSendByServer), 0);
+        printCurrentBlog();
         if (operationRequestedByClient.operation_type == DISCONNECT) {
             close(socket);
             break;
         }
 
-        printCurrentBlog();
     }
     return NULL;
 }
@@ -246,6 +251,7 @@ struct BlogOperation createOperationToSend(struct BlogOperation operationRequest
     case SUBSCRIBE_IN_TOPIC:
         // Subscribe a client in a topic if it exists
         topicIndex = findTopic(operationRequestedByClient.topic);
+        char* content = "";
         if (topicIndex == NOT_FOUND)
         {
             createTopic(operationRequestedByClient.topic);
@@ -260,15 +266,16 @@ struct BlogOperation createOperationToSend(struct BlogOperation operationRequest
         }
         else
         {
-            printf("Client %d is already subscribed in topic %s\n", operationRequestedByClient.client_id, operationRequestedByClient.topic);
+            content = "error: already subscribed\n";
         }
-        operationToSend = createOperation(operationRequestedByClient.client_id, SUBSCRIBE_IN_TOPIC, 1, operationRequestedByClient.topic, "");
+        operationToSend = createOperation(operationRequestedByClient.client_id, SUBSCRIBE_IN_TOPIC, 1, operationRequestedByClient.topic, content);
         break;
 
     case DISCONNECT:
         // Disconnect a client from the blog
         disconnectClient(operationRequestedByClient.client_id);
         messageClientDisconnected(*client);
+        blog.clients[operationRequestedByClient.client_id].id = -1;
         operationToSend = createOperation(operationRequestedByClient.client_id, DISCONNECT, 1, "", "");
         break;
 
@@ -418,7 +425,7 @@ void messageClientDisconnected(struct Client client)
 // Find a client in the blog by its ID
 struct Client* findClientByID(int clientID)
 {
-    for (int i = 0; i < blog.clientsCount; i++)
+    for (int i = 0; i < 10; i++)
     {
         if (clientID == blog.clients[i].id)
         {
@@ -431,7 +438,7 @@ struct Client* findClientByID(int clientID)
 void printCurrentBlog() {
     printf("\nCurrent blog:\n");
     printf("Clients:\n");
-    for (int i = 0; i < blog.clientsCount; i++) {
+    for (int i = 0; i < 10; i++) {
         printf("Client %d\n", blog.clients[i].id);
     }
     printf("Topics:\n");
