@@ -42,9 +42,6 @@ int main(int argc, char **argv)
 
     // Send connection request to server
     size_t size = send(sockfd, &operationToSendByClient, sizeof(operationToSendByClient), 0);
-    printf("Sending...\n");
-    printBlogOperation(operationToSendByClient);
-    printf("\n");
     if (size != sizeof(operationToSendByClient))
     {
         logexit("send");
@@ -57,9 +54,6 @@ int main(int argc, char **argv)
     {
         logexit("receive");
     }
-    printf("Received...\n");
-    printBlogOperation(operationReceivedByServer);
-    printf("\n");
 
     // Create thread to handle the client
     pthread_create(&clientThread, NULL, waitingFunction, (void *)&sockfd);
@@ -108,8 +102,6 @@ int main(int argc, char **argv)
         // Send request to server
         if (commandType != INVALID)
         {
-            printf("\nENVIADO PELO CLIENTE:\n");
-            printBlogOperation(operationToSend);
             size = send(sockfd, &operationToSend, sizeof(operationToSend), 0);
             if (size != sizeof(operationToSend))
             {
@@ -204,9 +196,6 @@ void *waitingFunction(void *sock)
         struct BlogOperation operationReceivedByServer;
         // Receive response from server
         size_t size = receive_all(*sockfd, &operationReceivedByServer, sizeof(operationReceivedByServer));
-        printf("Receiving...\n");
-        printBlogOperation(operationReceivedByServer);
-        printf("\n");
         if (size != sizeof(operationReceivedByServer))
         {
             logexit("receive");
@@ -215,7 +204,7 @@ void *waitingFunction(void *sock)
         switch (operationReceivedByServer.operation_type)
         {
         case NEW_POST_IN_TOPIC:
-            printf("new post added in %s by 0%d\n%s", operationReceivedByServer.topic, operationReceivedByServer.client_id, operationReceivedByServer.content);
+            printf("new post added in %s by 0%d\n%s", operationReceivedByServer.topic, operationReceivedByServer.client_id + 1, operationReceivedByServer.content);
             break;
 
         case LIST_TOPICS:
@@ -229,7 +218,6 @@ void *waitingFunction(void *sock)
         case DISCONNECT:
             close(*sockfd);
             pthread_exit(NULL);
-            printf("OI\n");
             break;
 
         default:
