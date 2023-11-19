@@ -247,6 +247,7 @@ struct BlogOperation createOperationToSend(struct BlogOperation operationRequest
         else if (!isSubscribed(client->id, topicIndex))
         {
             subscribeClientInTopic(*client, topicIndex);
+            printf("client 0%d subscribed to %s\n", client->id + 1, operationRequestedByClient.topic);
         }
         else
         {
