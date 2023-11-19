@@ -97,7 +97,6 @@ int main(int argc, char **argv)
             break;
 
         case DISCONNECT:
-            messageDisconnect();
             operationToSend = createOperation(operationReceivedByServer.client_id, DISCONNECT, 0, "", "");
             break;
 
@@ -115,6 +114,10 @@ int main(int argc, char **argv)
             {
                 logexit("send");
             }
+        }
+        if (commandType == DISCONNECT)
+        {
+            break;
         }
     }
 
@@ -219,8 +222,9 @@ void *waitingFunction(void *sock)
             break;
 
         case DISCONNECT:
-            printf("%s\n", operationReceivedByServer.content);
             close(*sockfd);
+            pthread_exit(NULL);
+            printf("OI\n");
             break;
 
         default:

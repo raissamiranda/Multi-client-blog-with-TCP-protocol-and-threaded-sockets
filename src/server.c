@@ -21,6 +21,10 @@ int main(int argc, char *argv[])
     // Initializes blog
     blog.clientsCount = 0;
     blog.topicsCount = 0;
+    for (int i = 0; i < 10; i++)
+    {
+        blog.clients[i].id = -1;
+    }
 
     // Waiting for someone to connect
     while (RECEIVING_CONNECTIONS)
@@ -39,8 +43,16 @@ int main(int argc, char *argv[])
         // Creating and adding new client to the blog
         struct Client newClient;
         newClient.socket = csock;
-        // TO DO: novo ID deve ser o menor disponivel
-        newClient.id = blog.clientsCount;
+        // New client ID is the first available ID
+        for (int i = 0; i < 10; i++)
+        {
+            if (blog.clients[i].id == -1)
+            {
+                newClient.id = i;
+                break;
+            }
+        }
+        //newClient.id = blog.clientsCount;
         addUserToBlog(newClient);
         messageClientConnected(newClient);
 
@@ -139,7 +151,12 @@ void *function(void *thread)
     {
         // Receive data from client
         struct BlogOperation operationRequestedByClient;
-        size_t size = receive_all(client->socket, &operationRequestedByClient, sizeof(operationRequestedByClient));
+        size_t size = receive_all(socket, &operationRequestedByClient, sizeof(operationRequestedByClient));
+
+        if (size == 0) {
+            operationRequestedByClient.operation_type = DISCONNECT;
+        }
+
         printf("\nRECEBIDO PELO SERVER!\n");
         printBlogOperation(operationRequestedByClient);
         if (size != sizeof(operationRequestedByClient))
@@ -148,18 +165,23 @@ void *function(void *thread)
         }
 
         // Create server response to client
-        struct BlogOperation operationSendByServer = createOperationToSend(operationRequestedByClient, *client);
+        struct BlogOperation operationSendByServer = createOperationToSend(operationRequestedByClient);
 
         printf("\n ENVIADO PELO SERVER:\n");
         printBlogOperation(operationSendByServer);
         // Send response to client
         size = send(socket, &operationSendByServer, sizeof(operationSendByServer), 0);
+        if (operationRequestedByClient.operation_type == DISCONNECT) {
+            close(socket);
+            break;
+        }
+
         printCurrentBlog();
     }
     return NULL;
 }
 
-struct BlogOperation createOperationToSend(struct BlogOperation operationRequestedByClient, struct Client client)
+struct BlogOperation createOperationToSend(struct BlogOperation operationRequestedByClient)
 {
     struct BlogOperation operationToSend;
     printf("client %d requested operation %d\n", operationRequestedByClient.client_id, operationRequestedByClient.operation_type);
@@ -167,6 +189,8 @@ struct BlogOperation createOperationToSend(struct BlogOperation operationRequest
     operationToSend.operation_type = 0;
     operationToSend.server_response = 1;
     int topicIndex;
+    struct Client* client = findClientByID(operationRequestedByClient.client_id);
+
     switch (operationRequestedByClient.operation_type)
     {
 
@@ -226,13 +250,13 @@ struct BlogOperation createOperationToSend(struct BlogOperation operationRequest
         {
             createTopic(operationRequestedByClient.topic);
             topicIndex = findTopic(operationRequestedByClient.topic);
-            subscribeClientInTopic(client, topicIndex);
+            subscribeClientInTopic(*client, topicIndex);
         }
-        else if (!isSubscribed(client, topicIndex))
+        else if (!isSubscribed(client->id, topicIndex))
         {
             printf("topicIndex: %d\n", topicIndex);
-            printf("isSubscribed: %d\n", isSubscribed(client, topicIndex));
-            subscribeClientInTopic(client, topicIndex);
+            printf("isSubscribed: %d\n", isSubscribed(client->id, topicIndex));
+            subscribeClientInTopic(*client, topicIndex);
         }
         else
         {
@@ -244,19 +268,16 @@ struct BlogOperation createOperationToSend(struct BlogOperation operationRequest
     case DISCONNECT:
         // Disconnect a client from the blog
         disconnectClient(operationRequestedByClient.client_id);
-        messageClientDisconnected(client);
+        messageClientDisconnected(*client);
+        operationToSend = createOperation(operationRequestedByClient.client_id, DISCONNECT, 1, "", "");
         break;
 
     case UNSUBSCRIBE_IN_TOPIC:
         // Unsubscribe a client in a topic if it exists
         topicIndex = findTopic(operationRequestedByClient.topic);
-        if (topicIndex != NOT_FOUND && isSubscribed(client, topicIndex))
+        if (topicIndex != NOT_FOUND && isSubscribed(client->id, topicIndex))
         {
-            unsubscribeClientInTopic(client, topicIndex);
-        }
-        else
-        {
-            printf("Client %d is not subscribed in topic %s\n", operationRequestedByClient.client_id, operationRequestedByClient.topic);
+            unsubscribeClientInTopic(client->id, topicIndex);
         }
         operationToSend = createOperation(operationRequestedByClient.client_id, UNSUBSCRIBE_IN_TOPIC, 1, operationRequestedByClient.topic, "");
         break;
@@ -335,12 +356,12 @@ void messageNewPostInTopic(int topicIndex)
 }
 
 // Check if a client is already subscribed in a topic
-bool isSubscribed(struct Client client, int topicIndex)
+bool isSubscribed(int clientID, int topicIndex)
 {
     bool isSubscribed = false;
     for (int i = 0; i < blog.topics[topicIndex].subscribersCount; i++)
     {
-        if (client.id == blog.topics[topicIndex].subscribers[i].id)
+        if (clientID == blog.topics[topicIndex].subscribers[i].id)
         {
             isSubscribed = true;
         }
@@ -357,15 +378,15 @@ void subscribeClientInTopic(struct Client client, int topicIndex)
 }
 
 // Unsubscribe a client in a topic
-void unsubscribeClientInTopic(struct Client client, int topicIndex)
+void unsubscribeClientInTopic(int clientID, int topicIndex)
 {
     printf("entrou no unsubscribe\n");
     printf("subscribersCount: %d\n", blog.topics[topicIndex].subscribersCount);
     for (int i = 0; i < blog.topics[topicIndex].subscribersCount; i++)
     {
-        printf("client.id: %d\n", client.id);
+        printf("client.id: %d\n", clientID);
         printf("blog.topics[topicIndex].subscribers[i].id: %d\n", blog.topics[topicIndex].subscribers[i].id);
-        if (client.id == blog.topics[topicIndex].subscribers[i].id)
+        if (clientID == blog.topics[topicIndex].subscribers[i].id)
         {
             blog.topics[topicIndex].subscribers[i] = blog.topics[topicIndex].subscribers[blog.topics[topicIndex].subscribersCount - 1];
             blog.topics[topicIndex].subscribersCount--;
@@ -378,20 +399,33 @@ void unsubscribeClientInTopic(struct Client client, int topicIndex)
 // Disconnect a client from the blog
 void disconnectClient(int clientID)
 {
-    for (int i = 0; i < blog.clientsCount; i++)
+    for (int i = 0; i < blog.topicsCount; i++)
     {
-        if (clientID == blog.clients[i].id)
+        if (isSubscribed(clientID, i))
         {
-            blog.clients[i] = blog.clients[blog.clientsCount - 1];
-            blog.clientsCount--;
+            unsubscribeClientInTopic(clientID, i);
         }
     }
+    blog.clientsCount--;
 }
 
 // Print a message when a client disconnects
 void messageClientDisconnected(struct Client client)
 {
     printf("client %d was disconnected\n", client.id);
+}
+
+// Find a client in the blog by its ID
+struct Client* findClientByID(int clientID)
+{
+    for (int i = 0; i < blog.clientsCount; i++)
+    {
+        if (clientID == blog.clients[i].id)
+        {
+            return &blog.clients[i];
+        }
+    }
+    return NULL;
 }
 
 void printCurrentBlog() {
