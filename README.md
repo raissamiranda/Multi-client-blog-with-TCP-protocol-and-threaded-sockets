@@ -24,7 +24,8 @@ It's recommended to use port 51511.
 ./bin/server <addressType> <portNumber>
 ```
 
-Open a new terminal for each clients you need and specify the serverIP and the same port number:
+Open a new terminal for each clients you need and specify the server IP and the same port number:
+It's recommended to use 127.0.0.1 for IP.
 ```
 ./bin/client <serverIP> <portNumber>
 ```
