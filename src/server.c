@@ -156,7 +156,7 @@ void *function(void *thread)
             operationRequestedByClient.operation_type = DISCONNECT;
         }
 
-        if (size != sizeof(operationRequestedByClient))
+        if (size != sizeof(operationRequestedByClient) && size != 0)
         {
             logexit("receive");
         }
