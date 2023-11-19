@@ -23,11 +23,13 @@ struct BlogOperation {
   char content[2048];
 };
 
+// Address structure to be used in communication between client and server
 struct Address {
   char *ip;
   char *port;
 };
 
+// Function prototypes related to sockets
 struct BlogOperation createOperation(int client_id, int operation_type,
                                      int server_response, char topic[50],
                                      char content[2048]);
@@ -39,6 +41,7 @@ void logexit(const char *msg);
 size_t receive_all(int socket, void *buffer, size_t length);
 void printBlogOperation(struct BlogOperation operation);
 
+// Constants
 #define EXIT_FAILURE 1
 #define RECEIVING_CONNECTIONS 1
 #define RECEIVING_DATA 1

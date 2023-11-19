@@ -2,12 +2,14 @@
 
 struct Blog blog;
 
+// Structs to be used as user
 struct Client {
   int id;
   int socket;
   pthread_t thread;
 };
 
+// Struct to be used as blog's topic
 struct Topic {
   int id;
   char title[50];
@@ -26,6 +28,7 @@ struct Blog {
   int topicsCount;
 };
 
+// Function prototypes related to server
 int createSocket();
 void addUserToBlog(struct Client client);
 void messageClientConnected(struct Client client);

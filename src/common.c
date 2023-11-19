@@ -55,7 +55,7 @@ void logexit(const char *str) {
   exit(EXIT_FAILURE);
 }
 
-// Receive all data from a socket
+// Initialize the socket address structure
 int server_sockaddr_init(const char *protocol_version, const char *portstr,
                          struct sockaddr_storage *storage) {
   uint16_t port = (uint16_t)atoi(portstr);
@@ -102,6 +102,7 @@ size_t receive_all(int socket, void *buffer, size_t size) {
   return total_received;
 }
 
+// Print blog operation for debugging purposes
 void printBlogOperation(struct BlogOperation operation) {
   printf("Client ID: %d\n", operation.client_id);
   printf("Operation Type: %d\n", operation.operation_type);

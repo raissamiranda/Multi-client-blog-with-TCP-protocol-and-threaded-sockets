@@ -54,6 +54,7 @@ int main(int argc, char **argv) {
   // Create thread to handle the client
   pthread_create(&clientThread, NULL, waitingFunction, (void *)&sockfd);
 
+  // Receive commands from user by terminal
   while (1) {
     struct BlogOperation operationToSend;
     fgets(command, sizeof(command), stdin);
@@ -113,6 +114,7 @@ int main(int argc, char **argv) {
   return 0;
 }
 
+// Get command type from complete input
 int handleCommand(char *input) {
   input[strlen(input) - 1] = '\0';    // Remove \n from input
   char *command = strtok(input, " "); // Get the command
@@ -170,8 +172,10 @@ char *getTopic(int cmd, char *cmdLine) {
   return NULL;
 }
 
+// Print message when client disconnects
 void messageDisconnect() { printf("exit\n"); }
 
+// Function to receive messages from server
 void *waitingFunction(void *sock) { // socket do cliente
   int *sockfd = (int *)sock;
   while (1) {
